@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 """Church Collections consists of all church weekly or monthly collections."""
 import datetime
-from odoo.addons.ng_church.models.helper import parish
+from .helper import parish, program_default_date
 
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, MissingError, UserError, ValidationError
@@ -13,7 +13,6 @@ class Collection(models.Model):
     _name = 'ng_church.collection'
 
     name = fields.Char()
-
 
 class Donation(models.Model):
     """Church Donation is cetain sum of money that is given to a church as charity."""
@@ -34,13 +33,14 @@ class DonationLine(models.Model):
     _name = 'ng_church.donation_line'
 
     donation_id = fields.Many2one('ng_church.donation', string='Donation')
-    name = fields.Char(string='Date')
+    name = fields.Char(string='name')
     date = fields.Date(string='Date', required=True)
     donor_id = fields.Many2one('res.partner', string='Donor')
     amount = fields.Float(string='Donated Amount', required=True)
     is_invoiced = fields.Boolean(string='Invoiced', readonly=True)
     notes = fields.Char(related='donation_id.name.name')
     church_id = fields.Many2one('res.company', default=parish)
+    payment_method_id = fields.Many2one('account.payment.method', string='Payment Method', required=True)
 
     @api.constrains('amount')
     def _check_valid_amount(self):
@@ -50,40 +50,30 @@ class DonationLine(models.Model):
 
     @api.onchange('date')
     def _onchange_name(self):
-        if self.date:            
+        if self.date:
             self.name = self.date.strftime("%B %d, %Y")
-           
 
-    def _prepare_account_voucher(self):
+    def _prepare_account_payment(self):
         """Generate Account Voucher."""
         company = self.env.user.company_id
+        payment_obj = self.env['account.payment']
         payload = {
             'company_id': company.id,
             'partner_id': self.env.user.partner_id.id,
-            'pay_now': 'pay_now',
-            'account_id': company.transit_account.id,
-            'journal_id': company.donation_journal.id,
-            'name': '{} Donation'.format(self.donor_id.name or 'Anonymous'),
-            'voucher_type': 'sale'
-
+            'partner_type': 'customer',
+            'journal_id': company.donation_payment_journal.id,
+            'amount': self.amount,
+            'payment_date': self.date,
+            'payment_method_id': self.payment_method_id.id,
+            'communication': '{} Donation'.format(self.donor_id.name or 'Anonymous'),
+            'payment_type': 'inbound'
         }
-        voucher = voucher.create(payload)
-        return voucher
+        payment_obj = payment_obj.create(payload)
+        return payment_obj
 
-    def _prepare_account_voucher_line(self, voucher_id):
-        payload = {
-            'name': self.notes,
-            'quantity': 1,  # Quantity is intentionally hard coded to be int: 1.
-            'price_unit': self.amount,
-            'voucher_id': voucher_id.id,
-            'account_id': self.env.user.company_id.donation_account.id  # credit account
-        }
-        return voucher_line.create(payload)
-
-    def generate_donation_voucher(self):
+    def generate_donation_move(self):
         """User Interface button call this method."""
-        voucher_id = self._prepare_account_voucher()
-        self._prepare_account_voucher_line(voucher_id)
+        self._prepare_account_payment()
         self.is_invoiced = True
 
 
@@ -112,7 +102,8 @@ class Tithe(models.Model):
     church_id = fields.Many2one('res.company', string='Church\'s Tithe', default=parish)
     is_pastor_tithe = fields.Boolean(string='Minister\'s Tithe')
     tithe_line_ids = fields.One2many('ng_church.tithe_lines', 'tithe_id', string='Tithes')
-    
+    date = fields.Date(string='Date')
+
 class TitheLine(models.Model):
     """One tenth of produce or earnings, formerly taken as a tax for the support of the church and clergy."""
 
@@ -121,13 +112,14 @@ class TitheLine(models.Model):
     date = fields.Date(string='Date', required=True)
     name = fields.Char(string='Date')
     tithe_type = fields.Selection(
-        selection=[('members', 'Members'), ('pastor', 'Pastor'), ('minister', 'Minister')], string='Category', default='members')
+        selection=[('members', 'Members'), ('pastor', 'Pastor'), ('minister', 'Minister')], string='Category',
+        default='members')
     tither = fields.Many2one('res.partner', string='Name')
     is_invoiced = fields.Boolean(string='Invoiced', readonly=True)
-
     tithe_id = fields.Many2one('ng_church.tithe', string='Tithe')
     amount = fields.Float('Amount', required=True)
     church_id = fields.Many2one('res.company', default=parish)
+    payment_method_id = fields.Many2one('account.payment.method', string='Payment Method', required=True) #change=1
 
     @api.constrains('amount')
     def _check_valid_amount(self):
@@ -138,39 +130,29 @@ class TitheLine(models.Model):
     @api.onchange('date')
     def _onchange_name(self):
         if self.date:
-           
             self.name = self.date.strftime("%B %d, %Y")
 
-    def _prepare_account_voucher(self):
+    def _prepare_account_payment(self):
         """Generate Account Voucher."""
         company = self.env.user.company_id
+        payment_obj = self.env['account.payment']
         payload = {
             'company_id': company.id,
             'partner_id': self.env.user.partner_id.id,
-            'pay_now': 'pay_now',
-            'account_id': company.transit_account.id,
-            'journal_id': company.tithe_journal.id,
-            'name': '{} Tithe'.format(self.tithe_type.capitalize()),
-            'voucher_type': 'sale'
-
+            'partner_type': 'customer', #changes= 8          
+            'journal_id': company.tithe_payment_journal.id, #changes=2
+            'amount': self.amount, #change=3
+            'payment_date': self.date, #change=4
+            'payment_method_id': self.payment_method_id.id, #change=5
+            'communication': '{} Tithe'.format(self.tithe_type.capitalize()),
+            'payment_type': 'inbound' #change=6
         }
-        voucher = voucher.create(payload)
-        return voucher
-
-    def _prepare_account_voucher_line(self, voucher_id):
-        payload = {
-            'name': 'Tithe',
-            'quantity': 1,  # Quantity is intentionally hard coded to be int: 1.
-            'price_unit': self.amount,
-            'voucher_id': voucher_id.id,
-            'account_id': self.env.user.company_id.tithe_account.id  # credit account
-        }
-        return voucher_line.create(payload)
+        payment_obj = payment_obj.create(payload)
+        return payment_obj
 
     def generate_tithe_voucher(self):
         """User Interface button call this method."""
-        voucher_id = self._prepare_account_voucher()
-        self._prepare_account_voucher_line(voucher_id)
+        self._prepare_account_payment() #change=7
         self.is_invoiced = True
 
 
@@ -211,6 +193,7 @@ class OfferingLine(models.Model):
     amount = fields.Float(string='Amount')
     offering_id = fields.Many2one('ng_church.offering', string='Offering')
     church_id = fields.Many2one('res.company', default=parish)
+    payment_method_id = fields.Many2one('account.payment.method', string='Payment Method', required=True) 
 
     @api.constrains('amount')
     def _check_valid_amount(self):
@@ -221,44 +204,31 @@ class OfferingLine(models.Model):
     @api.onchange('date')
     def _onchange_name(self):
         if self.date:
-            
             self.name = self.date.strftime("%B %d, %Y")
 
-    def _prepare_account_voucher(self):
+    def _prepare_account_payment(self):
         """Generate Account Voucher."""
         company = self.env.user.company_id
+        payment_obj = self.env['account.payment']
         payload = {
             'company_id': company.id,
             'partner_id': self.env.user.partner_id.id,
-            'pay_now': 'pay_now',
-            'account_id': company.transit_account.id,
-            'journal_id': company.offering_journal.id,
-            'name': '{} Offering'.format(self.offering_id.section_id.name),
-            'voucher_type': 'sale'
+            'partner_type': 'customer',
+            'journal_id': company.offering_payment_journal.id,
+            'amount': self.amount,
+            'payment_date': self.date,
+            'payment_method_id': self.payment_method_id.id,
+            'communication': '{} Offering'.format(self.offering_id.section_id.name),
+            'payment_type': 'inbound'
         }
-        voucher = voucher.create(payload)
-        return voucher
-
-    def _prepare_account_voucher_line(self, voucher_id):
-        payload = {
-            'name': 'Offering',
-            'quantity': 1,  # Quantity is intentionally hard coded to be int: 1.
-            'price_unit': self.amount,
-            'voucher_id': voucher_id.id,
-            'account_id': self.env.user.company_id.offering_account.id  # credit account
-        }
-        return voucher_line.create(payload)
+        payment_obj = payment_obj.create(payload)
+        return payment_obj
 
     def generate_offering_voucher(self):
         """User Interface button call this method."""
-        if self._uid != self.write_uid.id:
-            raise AccessError('You don\'t have the permission to Draft this invoice')
-            return False
-        voucher_id = self._prepare_account_voucher()
-        voucher_line_id = self._prepare_account_voucher_line(voucher_id)
+        self._prepare_account_payment()
         self.is_invoiced = True
-        return voucher_line_id
-
+        
 
 class Pledge(models.Model):
     """."""
@@ -268,7 +238,7 @@ class Pledge(models.Model):
     name = fields.Many2one('project.project', string='Project', required=True)
     date = fields.Date(related='name.x_date', string='Date')
     church_id = fields.Many2one('res.company', default=parish)
-    pledge_line_ids = fields.One2many('ng_church.pledge_line', 'pledge_id', string='Pledges')
+    pledge_line_ids = fields.One2many('ng_church.pledge_line', 'pledge_id', string='Pledges', required=True)
 
 
 class PledgeLine(models.Model):
@@ -278,7 +248,7 @@ class PledgeLine(models.Model):
 
     name = fields.Char(string='Name', related='pledge_id.name.name')
     date = fields.Date(string='Pledged Date', required=True)
-    pledger = fields.Many2one('ng_church.associate', string='Pledger')
+    pledger = fields.Many2one('ng_church.associate', string='Pledges')
     amount = fields.Float(string='Pledged Amount')
     balance = fields.Float(string='Balance', compute='_compute_balance', store=True)
     paid = fields.Float(string='Paid', compute='_compute_total_paid', store=True)
@@ -287,7 +257,7 @@ class PledgeLine(models.Model):
         'active', 'Active'), ('fulfilled', 'Fulfilled')], default='active')
     pledge_id = fields.Many2one('ng_church.pledge', string='Pledge')
     pledge_line_payment_ids = fields.One2many(
-        'ng_church.pledge_line_payment', 'pledge_line_id', string='Pledge Payment')
+        'ng_church.pledge_line_payment', 'pledge_line_id', string='Pledge Payment', required=True)
 
     @api.constrains('amount')
     def _check_valid_amount(self):
@@ -311,7 +281,6 @@ class PledgeLine(models.Model):
             self.write({'state': 'active'})
         self.balance = 0.0 if (self.amount - self.paid) < 1 else (self.amount - self.paid)
 
-    
     def send_by_email(self):
         """Send report via email."""
         ir_model_data = self.env['ir.model.data']
@@ -345,52 +314,34 @@ class PledgeLine(models.Model):
         }
 
     @api.model
-    def message_get_reply_to(self, res_id, default=None):
+    def message_get_reply_to(self, res_id):
         """message_get_reply_to."""
         if self.env.user.company_id.email is False:
             raise MissingError('Set church email address')
         return {res_id[0]: self.env.user.company_id.email}
 
-    
-    def print_report(self):
-        """Direct Report printing."""
-        return self.env['report'].get_action(self, 'ng_church.print_pledge_report')
-
-    def _prepare_account_voucher(self):
+    def _prepare_account_payment(self):
         """Generate Account Invoice."""
         company = self.env.user.company_id
-        voucher = voucher.create({
-            'partner_id': company.partner_id.id,
-            'pay_now': 'pay_now',
-            'account_id': company.transit_account.id,
-            'journal_id': company.pledge_journal.id,
-            'name': '{} Pledge'.format(self.name),
-            'voucher_type': 'sale'
-
-        })
-
-        return voucher
-
-    def _prepare_account_voucher_line(self, voucher_id):
-        company = self.env.user.company_id
-        payload = {
-            'name': voucher_id.name,
-            'quantity': 1,  # Quantity is intentionally hard coded to be int: 1.
-            'price_unit': self.paid,
-            'voucher_id': voucher_id.id,
-            'account_id': company.pledge_account.id
+        payment_obj = self.env['account.payment']
+        payload = {           
+            'company_id': company.id,
+            'partner_id': self.env.user.partner_id.id,
+            'partner_type': 'customer',
+            'journal_id': company.pledge_payment_journal.id,            
+            'amount': self.amount,
+            'payment_date': self.date,
+            'payment_method_id': self.payment_method_id.id,
+            'communication': '{} Pledge'.format(self.name),
+            'payment_type': 'inbound'
         }
-        return voucher_line.create(payload)
+        payment_obj = payment_obj.create(payload)
+        return payment_obj
 
-    def generate_pledge_voucher(self):
+    def generate_pledge_move(self):
         """User Interface button call this method."""
-        if self.is_invoiced == False:
-            voucher_id = self._prepare_account_voucher()
-            voucher_line_id = self._prepare_account_voucher_line(voucher_id)
-            self.is_invoiced = True
-            return voucher_line_id
-        raise UserError('Voucher already existed')
-
+        self._prepare_account_payment()
+        self.is_invoiced = True
 
 class PledgeLinePayment(models.Model):
     """."""

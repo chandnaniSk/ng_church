@@ -14,7 +14,7 @@ class PledgesReport(models.AbstractModel):
         return model
 
     @api.model
-    def render_html(self, docids, data=None):
+    def _get_report_values(self, docids, data=None):
         """."""
         name = 'ng_church.church_pledges_report'
         report_obj = self.env['report']
@@ -25,7 +25,7 @@ class PledgesReport(models.AbstractModel):
             'docs': self.env['ng_church.pledge'].browse(docids),
             'presenter': self.reports_presenter
         }
-        return report_obj.render(name, docargs)
+        return report_obj.report_action(name, docargs)
 
 
 class ChurchPledgeReport(models.TransientModel):

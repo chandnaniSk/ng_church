@@ -38,9 +38,9 @@ class AccountInvoice(models.Model):
 
     _inherit = 'account.move'
 
-    # church_section_id = fields.Many2one('church.sections', string="Church Section")
-    # fee_category_id = fields.Many2one('church.fees.category', string="Collection Source")
-    # church_service_id = fields.Many2one('ng_church.service', 'Service')
+    church_section_id = fields.Many2one('church.sections', string="Church Section")
+    fee_category_id = fields.Many2one('church.fees.category', string="Collection Source")
+    church_service_id = fields.Many2one('ng_church.service', 'Service')
     church_id = fields.Many2one('res.company', string='Church')
     partner_id = fields.Many2one('res.partner', string='Partner', store=True, readonly=True)
 
@@ -59,15 +59,19 @@ class Company(models.Model):
     program_ids = fields.One2many('ng_church.program', 'parish_id', string='Church Services')
     member_ids = fields.One2many('res.partner', 'parish_id', string='Church Member')
     tithe_ids = fields.One2many('ng_church.tithe', 'church_id', string='Church Tithes')
-
+    tithe_payment_journal = fields.Many2one('account.journal', string= "Tithes Payment Journal", domain=[('type', 'in', ('cash', 'bank'))])
     tithe_journal = fields.Many2one('account.journal', string="Journal", domain=journal)
     tithe_account = fields.Many2one('account.account', string="Account", domain=account)
     donation_journal = fields.Many2one('account.journal', string="Journal", domain=journal)
+    donation_payment_journal = fields.Many2one('account.journal', string= "Donation Payment Journal", domain=[('type', 'in', ('cash', 'bank'))])
     donation_account = fields.Many2one('account.account', string="Account", domain=account)
     offering_journal = fields.Many2one('account.journal', string="Journal", domain=journal)
+    offering_payment_journal = fields.Many2one('account.journal', string= "Offering Payment Journal", domain=[('type', 'in', ('cash', 'bank'))])
     offering_account = fields.Many2one('account.account', string="Account", domain=account)
     pledge_journal = fields.Many2one('account.journal', string="Journal", domain=journal)
+    pledge_payment_journal = fields.Many2one('account.journal', string= "Pledge Payment Journal", domain=[('type', 'in', ('cash', 'bank'))])
     pledge_account = fields.Many2one('account.account', string="Account", domain=account)
+    # transit_payment_account = fields.Many2one('account.journal', string= "Account Payment", domain=[('type', 'in', ('cash', 'bank'))])
     transit_account = fields.Many2one(
         'account.account', string='Account', required=True, domain=[('user_type_id', '=', 5)])
 

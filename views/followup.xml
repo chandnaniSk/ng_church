@@ -23,7 +23,7 @@
                                     <h3>
                                         <a type="open">
                                             <b style="color:green">
-                                                <field name="next_activity_id"/> :
+                                                <field name="next_activity_id"/> 
                                             </b>
                                             <field name="name" />
                                          </a>

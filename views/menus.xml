@@ -6,6 +6,7 @@
 
         <!--Church Main Menu-->
         <menuitem id="ng_church_church_main_menu" name="Church Management" parent="church_main_menu" sequence="1"/>
+        
         <menuitem id="ng_church_church_menu" name="Church" parent="ng_church_church_main_menu"
 			action="ng_church_church_action"/>
 
@@ -81,17 +82,17 @@
         <!--Odoo Church Reporting Menu-->
         <menuitem id="ng_church_reporting_menu" name="Reporting" parent="church_main_menu"/>
 		<menuitem id="ng_church_attendance_report" name="Attendance" parent="ng_church_reporting_menu"
-			action="ng_church_attendance_report_action"/>
+			action="action_ng_church_attendance_wizard"/>
 		<menuitem id="ng_church_collection_report" name="Church Collections"
 			parent="ng_church_reporting_menu"/>
         <menuitem id="church_tithe_report_menu" name="Tithes" parent="ng_church_collection_report"
-			action="ng_church_tithe_report_action"/>
+			action="action_ng_church_tithe_wizard"/>
 		<menuitem id="church_offering_report_menu" name="Offering" parent="ng_church_collection_report"
-			action="ng_church_offering_report_action"/>
+			action="action_ng_church_offering_wizard"/>
 		<menuitem id="church_donation_report_menu" name="Donation" parent="ng_church_collection_report"
-			action="ng_church_donation_report_action"/>
+			action="action_ng_church_donation_wizard"/>
 		<menuitem id="church_pledge_report_menu" name="Pledge" parent="ng_church_collection_report"
-			action="ng_church_pledge_report_action"/>
+			action="action_ng_church_pledge_wizard"/>
         <!--Training Main Menu-->
         <menuitem id="ng_church_growth_main_menu" name="Church Growth" parent="church_main_menu"/>
 

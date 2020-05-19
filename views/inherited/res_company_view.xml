@@ -18,18 +18,22 @@
                         <group>
                             <group string="Tithes">
                                 <field name="tithe_journal"/>
+                                <field name="tithe_payment_journal"/>
                                 <field name="tithe_account"/>
                             </group>
                             <group string="Donations">
                                 <field name="donation_journal"/>
+                                <field name="donation_payment_journal"/>
                                 <field name="donation_account"/>
                             </group>
                             <group string="Offerings">
                                 <field name="offering_journal"/>
+                                <field name="offering_payment_journal"/>
                                 <field name="offering_account"/>
                             </group>
                             <group string="Pledges">
                                 <field name="pledge_journal"/>
+                                <field name="pledge_payment_journal"/>
                                 <field name="pledge_account"/>
                             </group>
                             <group string="Transit Account">

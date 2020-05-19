@@ -5,7 +5,6 @@ from odoo import api, fields, models
 from odoo.exceptions import MissingError
 import datetime
 
-
 class ChurchAttendanceLineAbstractModel(models.AbstractModel):
     """PledgesReport."""
 
@@ -31,21 +30,6 @@ class ChurchAttendanceLineAbstractModel(models.AbstractModel):
             total += population.total
         return ['Total:', male, female, children, guest, total]
 
-    @api.model
-    def render_html(self, docids, data=None):
-        """."""
-        name = 'ng_church.church_attendance_report'
-        report_obj = self.env['report']
-        report = report_obj._get_report_from_name(name)
-        docargs = {
-            'doc_ids': docids,
-            'doc_model': report.model,
-            'docs': self.env['ng_church.attendance_line'].browse(docids),
-            'attendance_line_mutator': self.attendance_line_mutator,
-            'attendance_census': self.attendance_census
-        }
-        return report_obj.render(name, docargs)
-
 
 class ChurchAttendanceLine(models.TransientModel):
     """."""
@@ -63,22 +47,15 @@ class ChurchAttendanceLine(models.TransientModel):
             raise MissingError('Attendance record does not exist for selected date range.')
 
     def check_report(self):
-        """."""
         attendance = self.attendance
-        report = self.env['ng_church.attendance_line'].search(
-            [('attendance_id', '=', attendance.id)])
-        self._report_exist(report)
-        if self.date_from and self.date_to:
-            attendance_line_from = report.filtered(lambda r: r.date >= self.date_from)
-            attendance_line_to = attendance_line_from.filtered(lambda r: r.date <= self.date_to)
-            self._report_exist(attendance_line_to)
-            return self.env['report'].get_action(attendance_line_to, 'ng_church.church_attendance_report')
-        elif self.date_from:
-            attendance_line_from = report.filtered(lambda r: r.date >= self.date_from)
-            self._report_exist(attendance_line_from)
-            return self.env['report'].get_action(attendance_line_from, 'ng_church.church_attendance_report')
-        elif self.date_to:
-            attendance_line_to = report.filtered(lambda r: r.date <= self.date_to)
-            self._report_exist(attendance_line_to)
-            return self.env['report'].get_action(attendance_line_to, 'ng_church.church_attendance_report')
-        return self.env['report'].get_action(report, 'ng_church.church_attendance_report')
+        data = {
+            'ids': self.env['ng_church.attendance_line'].search([('attendance_id', '=', attendance.id)]),
+            'model': self._name,
+            'form': {
+                'date_from': self.date_from,
+                'date_to': self.date_to,
+                'attendance': self.attendance,
+            },
+        }
+        print('Attendance', data)
+        return self.env.ref('ng_church.ng_church_church_attendance_report').report_action(self, data)

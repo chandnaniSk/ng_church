@@ -2,7 +2,7 @@
 """."""
 from odoo import api, fields, models
 from .helper import parish
-from odoo.exceptions import UserError, ValidationError, MissingError
+from odoo.exceptions import UserError, ValidationError
 
 
 class Lodgement(models.Model):
@@ -23,6 +23,7 @@ class Lodgement(models.Model):
                                  domain=[('type', '=', 'bank')], required=True)
     state = fields.Selection([('draft', 'Draft'), ('posted', 'Posted')],
                              copy=False, default='draft')
+    payment_method_id = fields.Many2one('account.payment.method', string='Payment Method', required=True)
 
     @api.constrains('amount')
     def _check_valid_amount(self):
@@ -30,49 +31,24 @@ class Lodgement(models.Model):
             raise ValidationError(
                 'Please enter a valid amount of money {} amount can\'t be post for lodgement'.format(self.amount))
 
-    def _prepare_account_move(self):
-        account_move = self.env['account.move']
-        account_move = account_move.create(
-            {'journal_id': self.journal_id.id, 'amount': self.amount, 'date': self.date})
-        return account_move
-
-    def _prepare_first_account_move_line(self, move_id):
+    def _prepare_account_payment(self):
+        """Generate Account Invoice."""
+        company = self.env.user.company_id
+        payment_obj = self.env['account.payment']
         payload = {
-            'name': self.description,
+            'company_id': company.id,
+            'partner_id': parish(self),
+            'partner_type': 'customer',
             'journal_id': self.journal_id.id,
-            'account_id': self.env.user.company_id.transit_account.id,
-            'move_id': move_id,
-            'partner_id': parish(self),
-            'quantity': 1,
-            'credit': abs(self.amount),
-            'debit': 0.0,
-            'date': self.date,
+            'amount': self.amount,
+            'payment_date': self.date,
+            'payment_method_id': self.payment_method_id.id,
+            'communication': self.description,
+            'payment_type': 'inbound'
         }
-        account_move_line = self.env['account.move.line'].with_context(check_move_validity=False)
-        account_move_line.create(payload)
-
-    def _prepare_second_account_move_line(self, move_id):
-        if self.journal_id.default_debit_account_id.id == False:
-            raise MissingError(
-                '{} default debit and credit are not set.'.format(self.journal_id.name))
-        payload = {
-            'name': self.description,
-            'account_id': self.journal_id.default_debit_account_id.id,
-            'move_id': move_id,
-            'partner_id': parish(self),
-            'quantity': 1,
-            'debit': abs(self.amount),
-            'credit': 0.0,
-            'date': self.date,
-        }
-        account_move_line = self.env['account.move.line'].with_context(check_move_validity=False)
-        account_move_line.create(payload)
+        payment_obj = payment_obj.create(payload)
+        return payment_obj
 
     def lodge(self):
         """lodgement."""
-        move = self._prepare_account_move()
-        self._prepare_second_account_move_line(move.id)  # credit line
-        self._prepare_first_account_move_line(move.id)  # debit line
-        move.post()
-        self.name = move.name
-        self.state = move.state
+        self._prepare_account_payment()

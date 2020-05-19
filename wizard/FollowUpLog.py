@@ -6,10 +6,11 @@ from odoo import fields, models
 class FollowupLog(models.TransientModel):
     """."""
 
+    _name = 'ng_church.followup_log'
+
     def _default_activity_id(self):
         return self._context['active_ids'][0]
 
-    _name = 'ng_church.followup_log'
 
     activity_id = fields.Many2one('crm.activity', string='Next Activity',
                                   default=_default_activity_id)

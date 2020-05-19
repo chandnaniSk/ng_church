@@ -16,7 +16,7 @@ class ChurchOfferingLineAbstractModel(models.AbstractModel):
         return sum(offering.amount for offering in model)
 
     @api.model
-    def render_html(self, docids, data=None):
+    def _get_report_values(self, docids, data=None):
         """."""
         name = 'ng_church.church_offering_report'
         report_obj = self.env['report']
@@ -27,7 +27,7 @@ class ChurchOfferingLineAbstractModel(models.AbstractModel):
             'docs': self.env['ng_church.offering_line'].browse(docids),
             'offering_caculator': self.offering_caculator
         }
-        return report_obj.render(name, docargs)
+        return report_obj.report_action(name, docargs)
 
 
 class OfferingReportWizard(models.Model):

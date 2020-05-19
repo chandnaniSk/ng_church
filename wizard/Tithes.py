@@ -16,7 +16,7 @@ class ChurchTitheLineAbstractModel(models.AbstractModel):
         return sum(tithe.amount for tithe in model)
 
     @api.model
-    def render_html(self, docids, data=None):
+    def _get_report_values(self, docids, data=None):
         """."""
         name = 'ng_church.church_tithe_report'
         report_obj = self.env['report']
@@ -27,7 +27,7 @@ class ChurchTitheLineAbstractModel(models.AbstractModel):
             'docs': self.env['ng_church.tithe_lines'].browse(docids),
             'tithe_caculator': self.tithe_caculator
         }
-        return report_obj.render(name, docargs)
+        return report_obj.report_action(name, docargs)
 
 
 class TitheReportWizard(models.Model):

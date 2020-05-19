@@ -61,7 +61,7 @@
 
                  </header>
                  <sheet>
-                     <button name="generate_pledge_voucher" string="Generate Voucher" class="oe_highlight oe_right" type="object"
+                     <button name="generate_pledge_move" string="Generate Voucher" class="oe_highlight oe_right" type="object"
                          attrs="{'invisible':[('state', '!=', 'fulfilled')]}" groups="ng_church.church_administrator"/>
                      <group>
                          <group>
@@ -103,7 +103,7 @@
                              <field name="pledge_line_ids">
                                  <tree default_order="desc">
                                      <field name="date"/>
-                                     <field name="pledger"/>
+                                     <field name="pledger"/>                                     
                                      <field name="state"/>
                                      <field name="amount" widget="monetary"/>
                                  </tree>
@@ -184,6 +184,7 @@
                             <field name="date"/>
                             <field name="name" invisible="1"/>
                             <field name="tithe_type"/>
+                            <field name='payment_method_id'/>
                             <field name="tither" attrs="{'invisible':[('tithe_type', '=', 'members')]}"/>
                             <field name="is_invoiced" invisible="1"/>
 
@@ -251,6 +252,7 @@
                         <group>
                             <field name="date"/>
                             <field name="name" invisible="1"/>
+                            <field name='payment_method_id'/>
                             <field name="is_invoiced" invisible="1"/>
 
                             </group>
@@ -367,7 +369,7 @@
                 <form string="Donation">
                 <sheet>
                     <header>
-                        <button name="generate_donation_voucher"
+                        <button name="generate_donation_move"
                                 string="Generate Voucher"
                                 class="oe_highlight oe_right"
                                 type="object"
@@ -377,6 +379,7 @@
                         <group>
                             <field name="date"/>
                             <field name="name" invisible="1"/>
+                            <field name='payment_method_id'/>
                             <field name="donor_id"/>
                         </group>
                         <group>
@@ -402,5 +405,5 @@
                 </tree>
             </field>
         </record>
-    </data>
+     </data>
 </odoo>

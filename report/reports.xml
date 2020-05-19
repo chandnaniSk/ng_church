@@ -2,7 +2,8 @@
 <odoo>
     
         <report id="pledge_report_reg"
-            name="ng_church.print_pledge_report" string="Pledge Balance"
+            name="ng_church.print_pledge_report" 
+            string="Pledge Balance"
             model="ng_church.pledge_line"
             file="ng_church.print_pledge_report"
             report_type='qweb-pdf' />
@@ -20,7 +21,7 @@
             name="ng_church.church_attendance_report"
             file="ng_church.church_attendance_report"
             report_type="qweb-pdf"
-            menu="False" />
+             />
 
         <report id="ng_church_tithe_line_report"
             model="ng_church.tithe_lines"
